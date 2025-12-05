@@ -7,8 +7,9 @@ module Piggly
     #
     class ReifiedProcedure < SkeletonProcedure
 
-      def initialize(source, oid, name, strict, secdef, setof, type, volatility, arg_modes, arg_names, arg_types, arg_defaults)
-        @source = source.strip
+      def initialize(source, oid, name, strict, secdef, setof, type, volatility, arg_modes, arg_names, arg_types, arg_defaults, prokind = 'f')
+        # Ensure source is UTF-8 encoded
+        @source = source.to_s.force_encoding('UTF-8').strip
 
         if type.name == "record" and type.schema == "pg_catalog" and arg_modes.include?("t")
           prefix       = arg_modes.take_while{|m| m != "t" }.length
@@ -20,7 +21,7 @@ module Piggly
           setof        = false
         end
 
-        super(oid, name, strict, secdef, setof, type, volatility, arg_modes, arg_names, arg_types, arg_defaults)
+        super(oid, name, strict, secdef, setof, type, volatility, arg_modes, arg_names, arg_types, arg_defaults, prokind)
       end
 
       # @return [String]
@@ -36,14 +37,14 @@ module Piggly
                 "last coverage run. You must restore the source manually."
         end
 
-        File.open(source_path(config), "wb"){|io| io.write(@source) }
+        File.open(source_path(config), "wb:UTF-8"){|io| io.write(@source) }
       end
 
       # @return [SkeletonProcedure]
       def skeleton
         SkeletonProcedure.new(@oid, @name, @strict, @secdef, @setof, @type,
                               @volatility, @arg_modes, @arg_names, @arg_types,
-                              @arg_defaults)
+                              @arg_defaults, @prokind)
       end
 
       def skeleton?
@@ -114,7 +115,8 @@ module Piggly
                    oidvectortypes(pro.proargtypes)
                  end as arg_types,
             pro.pronargdefaults as arg_defaults_count,
-            coalesce(pg_get_expr(pro.proargdefaults, 0), '') as arg_defaults
+            coalesce(pg_get_expr(pro.proargdefaults, 0), '') as arg_defaults,
+            coalesce(pro.prokind, 'f') as prokind
           from pg_proc as pro,
                pg_type as ret,
                pg_namespace as nschema,
@@ -149,7 +151,8 @@ module Piggly
             hash["arg_types"].to_s.split(",").map{|x| QualifiedType.parse(x.strip) },
             defaults(hash["arg_defaults"],
                      hash["arg_defaults_count"].to_i,
-                     hash["arg_count"].to_i))
+                     hash["arg_count"].to_i),
+            hash["prokind"].to_s)
       end
 
       def coalesce(value, default)
