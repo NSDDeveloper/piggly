@@ -13,7 +13,7 @@ module Piggly
     class << Report
       def main(argv)
         require "pp"
-        io, config = configure(argv)
+        io, config, sonar_path, html_report_requested = configure(argv)
 
         profile = Profile.new
         index   = Dumper::Index.new(config)
@@ -33,12 +33,23 @@ module Piggly
 
         profile_procedures(config, procedures, profile)
         clear_coverage(config, profile)
-
         read_profile(config, io, profile)
         store_coverage(profile)
 
-        create_index(config, index, procedures, profile)
-        create_reports(config, procedures, profile)
+        # Generate HTML coverage report if requested
+        if html_report_requested
+          create_index(config, index, procedures, profile)
+          create_reports(config, procedures, profile)
+        end
+        
+        # Generate Sonar coverage report if requested
+        if sonar_path
+          create_sonar_report(config, procedures, profile, sonar_path)
+        end
+        
+        unless html_report_requested || sonar_path
+          puts "Warning: No report output specified. Use -o for HTML reports or -x for Sonar report."
+        end
       end
 
       # Adds the given procedures to Profile
@@ -118,14 +129,32 @@ module Piggly
         queue.execute
       end
 
+      # Create Sonar coverage XML report
+      #
+      def create_sonar_report(config, procedures, profile, output_path)
+        puts "creating Sonar coverage report"
+        reporter = Reporter::Sonar.new(config, profile, output_path)
+        path = reporter.report(procedures)
+        puts "Sonar coverage report written to: #{path}"
+      end
+
       def configure(argv, config = Config.new)
         io = $stdin
+        sonar_path = nil
+        html_report_requested = false
+
         p  = OptionParser.new do |o|
           o.on("-t", "--dry-run",           "only print the names of matching procedures", &o_dry_run(config))
           o.on("-s", "--select PATTERN",    "select procedures matching PATTERN", &o_select(config))
           o.on("-r", "--reject PATTERN",    "ignore procedures matching PATTERN", &o_reject(config))
           o.on("-c", "--cache-root PATH",   "local cache directory", &o_cache_root(config))
-          o.on("-o", "--report-root PATH",  "report output directory", &o_report_root(config))
+          o.on("-o", "--report-root PATH",  "report output directory") do |path|
+            config.report_root = path
+            html_report_requested = true
+          end
+          o.on("-x", "--sonar-report-path PATH",  "generate Sonar coverage XML report at PATH") do |path|
+            sonar_path = path
+          end
           o.on("-a", "--accumulate",        "accumulate data from the previous run", &o_accumulate(config))
           o.on("-V", "--version",           "show version", &o_version(config))
           o.on("-h", "--help",              "show this message") { abort o.to_s }
@@ -140,13 +169,18 @@ module Piggly
 
         begin
           p.parse! argv
+
+          unless html_report_requested || sonar_path
+            raise OptionParser::MissingArgument,
+              "at least one report type required: use -o for HTML reports or -x for Sonar report"
+          end
           
           if io.eql?($stdin) and $stdin.tty?
             raise OptionParser::MissingArgument,
               "stdin must be a pipe, or use --input PATH"
           end
 
-          return io, config
+          return io, config, sonar_path, html_report_requested
         rescue OptionParser::InvalidOption,
                OptionParser::InvalidArgument,
                OptionParser::MissingArgument
