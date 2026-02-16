@@ -1,4 +1,4 @@
-[![CI](https://github.com/sergeiboikov/piggly/actions/workflows/ci.yml/badge.svg)](https://github.com/sergeiboikov/piggly/actions/workflows/ci.yml)
+[![CI](https://github.com/NSDDeveloper/piggly/actions/workflows/ci.yml/badge.svg)](https://github.com/NSDDeveloper/piggly/actions/workflows/ci.yml)
 # Piggly-NSD
 
 Code coverage reports for PostgreSQL PL/pgSQL stored procedures
@@ -60,7 +60,7 @@ This fork continues the version numbering from the original piggly project:
 
 To install the latest from github:
 
-    $ git clone https://github.com/sergeiboikov/piggly.git
+    $ git clone https://github.com/NSDDeveloper/piggly.git
     $ cd piggly
     $ bundle install
     $ bundle exec rake spec
@@ -179,4 +179,4 @@ This generates an XML file in SonarQube's [generic test coverage format](https:/
 
 ## Bugs & Issues
 
-Please report any issues or feature requests on the [github tracker](https://github.com/sergeiboikov/piggly/issues).
+Please report any issues or feature requests on the [github tracker](https://github.com/NSDDeveloper/piggly/issues).

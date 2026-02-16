@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.author   = 'Kvle Putnam'
   s.email    = 'putnam.kvle@gmail.com'
   s.summary  = 'PL/pgSQL code coverage tool (NSD fork)'
-  s.homepage = 'https://github.com/sergeiboikov/piggly'
+  s.homepage = 'https://github.com/NSDDeveloper/piggly'
   s.files    = ['README*', 'Rakefile', '{spec,lib,bin}/**/*'].map{|p| Dir[p]}.flatten
   s.files   -= ['lib/piggly/parser/parser.rb']
   s.license  = 'BSD-2-Clause'
